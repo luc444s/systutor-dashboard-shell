@@ -2,9 +2,6 @@ import { useState } from "react";
 import { NavLink } from "react-router-dom";
 
 import { useLogoutAction } from "../../features/auth/useLogoutAction";
-import { useAuthStore } from "../../features/auth/store";
-import { usePluginFrontendRuntime } from "../../features/plugins/runtime";
-import { buildShellSidebarSections } from "../../features/shell/navigation";
 import { ThemeToggle } from "./theme-toggle";
 
 function ChevronDown({ open }: { open: boolean }) {
@@ -23,15 +20,24 @@ function ChevronDown({ open }: { open: boolean }) {
 
 export function Sidebar() {
   const logout = useLogoutAction();
-  const permissions = useAuthStore((state) => state.permissions);
-  const pluginRuntime = usePluginFrontendRuntime();
-  const sections = buildShellSidebarSections({
-    permissions,
-    pluginNavigation: pluginRuntime.navigation,
-  });
+
+  const sections = [
+    {
+      title: "Menu",
+      items: [
+        { kind: "link" as const, label: "Dashboard", to: "/app/dashboard" },
+      ],
+    },
+    {
+      title: "Sesion",
+      items: [
+        { kind: "action" as const, label: "Cerrar sesion", action: "logout" as const },
+      ],
+    },
+  ];
 
   const [collapsedSections, setCollapsedSections] = useState<Set<string>>(
-    () => new Set(sections.map((s) => s.title)),
+    () => new Set(),
   );
 
   function toggleSection(key: string) {
@@ -48,7 +54,7 @@ export function Sidebar() {
       <div className="mb-8 flex items-center justify-between">
         <div className="space-y-1">
           <h1 className="text-lg font-semibold text-sidebar-foreground">SYSTUTOR</h1>
-          </div>
+        </div>
       </div>
 
       <nav className="flex-1 space-y-5 overflow-y-auto">
@@ -89,29 +95,6 @@ export function Sidebar() {
                         </NavLink>
                       );
                     }
-                    if (item.kind === "group") {
-                      return (
-                        <div key={`${sectionKey}:${item.label}`} className="space-y-1">
-                          {item.items.map((child) => (
-                            <NavLink
-                              key={`${sectionKey}:${child.to}`}
-                              to={child.to}
-                              end
-                              className={({ isActive }) =>
-                                [
-                                  "block rounded-md px-3 py-1.5 pl-6 text-sm transition",
-                                  isActive
-                                    ? "bg-accent text-accent-foreground"
-                                    : "text-sidebar-foreground/75 hover:bg-accent hover:text-accent-foreground",
-                                ].join(" ")
-                              }
-                            >
-                              {child.label}
-                            </NavLink>
-                          ))}
-                        </div>
-                      );
-                    }
                     if (item.kind === "action") {
                       return (
                         <button
@@ -136,6 +119,6 @@ export function Sidebar() {
       <div className="mt-auto border-t border-border pt-3">
         <ThemeToggle />
       </div>
-   </aside>
+    </aside>
   );
 }
