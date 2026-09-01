@@ -41,6 +41,7 @@ const BARE_DEP_ALIASES = [
   "clsx",
   "tailwind-merge",
   "sonner",
+  "zustand",
   "@monaco-editor/react",
   "monaco-editor",
   "@react-pdf-viewer/core",

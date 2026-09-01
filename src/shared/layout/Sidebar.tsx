@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { NavLink } from "react-router-dom";
 
+import { useAuthStore } from "../../features/auth/store";
 import { useLogoutAction } from "../../features/auth/useLogoutAction";
 import { ThemeToggle } from "./theme-toggle";
 
@@ -20,19 +21,43 @@ function ChevronDown({ open }: { open: boolean }) {
 
 export function Sidebar() {
   const logout = useLogoutAction();
+  const permissions = useAuthStore((state) => state.permissions);
 
   const sections = [
     {
-      title: "Menu",
+      title: "Sistema",
       items: [
         { kind: "link" as const, label: "Dashboard", to: "/app/dashboard" },
+        ...(permissions.includes("core.plugin.runtime.read") || permissions.includes("core.plugin.manage")
+          ? [{ kind: "link" as const, label: "Plugins", to: "/app/plugins" }]
+          : []),
       ],
     },
+    ...(permissions.includes("core.users.read") ||
+    permissions.includes("core.roles.read") ||
+    permissions.includes("core.roles.manage") ||
+    permissions.includes("core.branches.read") ||
+    permissions.includes("core.branches.manage")
+      ? [
+          {
+            title: "Ajustes",
+            items: [
+              ...(permissions.includes("core.users.read")
+                ? [{ kind: "link" as const, label: "Usuarios", to: "/app/settings/users" }]
+                : []),
+              ...(permissions.includes("core.roles.read") || permissions.includes("core.roles.manage")
+                ? [{ kind: "link" as const, label: "Roles", to: "/app/settings/roles" }]
+                : []),
+              ...(permissions.includes("core.branches.read") || permissions.includes("core.branches.manage")
+                ? [{ kind: "link" as const, label: "Sucursales", to: "/app/settings/branches" }]
+                : []),
+            ],
+          },
+        ]
+      : []),
     {
       title: "Sesion",
-      items: [
-        { kind: "action" as const, label: "Cerrar sesion", action: "logout" as const },
-      ],
+      items: [{ kind: "action" as const, label: "Cerrar sesion", action: "logout" as const }],
     },
   ];
 
