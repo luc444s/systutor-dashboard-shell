@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { NavLink } from "react-router-dom";
 
 import { useAuthStore } from "../../features/auth/store";
@@ -19,51 +19,94 @@ function ChevronDown({ open }: { open: boolean }) {
   );
 }
 
+type MenuItem = {
+  kind: "link" | "action";
+  label: string;
+  to?: string;
+  action?: "logout";
+};
+
+type MenuSection = {
+  title: string;
+  items: MenuItem[];
+};
+
 export function Sidebar() {
   const logout = useLogoutAction();
   const permissions = useAuthStore((state) => state.permissions);
-
-  const sections = [
-    {
-      title: "Sistema",
-      items: [
-        { kind: "link" as const, label: "Dashboard", to: "/app/dashboard" },
-        ...(permissions.includes("core.plugin.runtime.read") || permissions.includes("core.plugin.manage")
-          ? [{ kind: "link" as const, label: "Plugins", to: "/app/plugins" }]
-          : []),
-      ],
-    },
-    ...(permissions.includes("core.users.read") ||
-    permissions.includes("core.roles.read") ||
-    permissions.includes("core.roles.manage") ||
-    permissions.includes("core.branches.read") ||
-    permissions.includes("core.branches.manage")
-      ? [
-          {
-            title: "Ajustes",
-            items: [
-              ...(permissions.includes("core.users.read")
-                ? [{ kind: "link" as const, label: "Usuarios", to: "/app/settings/users" }]
-                : []),
-              ...(permissions.includes("core.roles.read") || permissions.includes("core.roles.manage")
-                ? [{ kind: "link" as const, label: "Roles", to: "/app/settings/roles" }]
-                : []),
-              ...(permissions.includes("core.branches.read") || permissions.includes("core.branches.manage")
-                ? [{ kind: "link" as const, label: "Sucursales", to: "/app/settings/branches" }]
-                : []),
-            ],
-          },
-        ]
-      : []),
-    {
-      title: "Sesion",
-      items: [{ kind: "action" as const, label: "Cerrar sesion", action: "logout" as const }],
-    },
-  ];
+  const pluginRuntimeRecords = useAuthStore((state) => state.pluginRuntimeRecords);
 
   const [collapsedSections, setCollapsedSections] = useState<Set<string>>(
     () => new Set(),
   );
+
+  const sections: MenuSection[] = [];
+
+  // Sección Sistema
+  sections.push({
+    title: "Sistema",
+    items: [
+      { kind: "link" as const, label: "Dashboard", to: "/app/dashboard" },
+      ...(permissions.includes("core.plugin.runtime.read") || permissions.includes("core.plugin.manage")
+        ? [{ kind: "link" as const, label: "Plugins", to: "/app/plugins" }]
+        : []),
+    ],
+  });
+
+  // Sección Ajustes
+  if (permissions.includes("core.users.read") ||
+    permissions.includes("core.roles.read") ||
+    permissions.includes("core.roles.manage") ||
+    permissions.includes("core.branches.read") ||
+    permissions.includes("core.branches.manage")) {
+    sections.push({
+      title: "Ajustes",
+      items: [
+        ...(permissions.includes("core.users.read")
+          ? [{ kind: "link" as const, label: "Usuarios", to: "/app/settings/users" }]
+          : []),
+        ...(permissions.includes("core.roles.read") || permissions.includes("core.roles.manage")
+          ? [{ kind: "link" as const, label: "Roles", to: "/app/settings/roles" }]
+          : []),
+        ...(permissions.includes("core.branches.read") || permissions.includes("core.branches.manage")
+          ? [{ kind: "link" as const, label: "Sucursales", to: "/app/settings/branches" }]
+          : []),
+      ],
+    });
+  }
+
+  // Secciones de plugins
+  if (pluginRuntimeRecords && pluginRuntimeRecords.length > 0) {
+    for (const plugin of pluginRuntimeRecords) {
+      const sectionTitle = plugin.name.charAt(0).toUpperCase() + plugin.name.slice(1);
+      const items: MenuItem[] = [];
+
+      if (plugin.frontend_entrypoint) {
+        items.push({ kind: "link" as const, label: "Dashboard", to: `/app/${plugin.plugin_id}` });
+      }
+
+      if (plugin.events_json?.includes("inventory.movement.created") || plugin.permissions_json?.includes("inventory.movements.read")) {
+        items.push({ kind: "link" as const, label: "Movimientos", to: `/app/${plugin.plugin_id}/movements` });
+      }
+
+      if (items.length > 0) {
+        sections.push({
+          title: sectionTitle,
+          items,
+        });
+      }
+    }
+  }
+
+  // Sección Sesión
+  sections.push({
+    title: "Sesion",
+    items: [{ kind: "action" as const, label: "Cerrar sesion", action: "logout" as const }],
+  });
+
+  useEffect(() => {
+    setCollapsedSections(new Set());
+  }, [pluginRuntimeRecords]);
 
   function toggleSection(key: string) {
     setCollapsedSections((prev) => {
@@ -101,7 +144,7 @@ export function Sidebar() {
               {!isCollapsed ? (
                 <div className="space-y-2">
                   {section.items.map((item) => {
-                    if (item.kind === "link") {
+                    if (item.kind === "link" && item.to) {
                       return (
                         <NavLink
                           key={`${sectionKey}:${item.to}`}
