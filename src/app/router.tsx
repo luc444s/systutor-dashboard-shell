@@ -1,6 +1,8 @@
 import { createBrowserRouter, Navigate } from "react-router-dom";
 
 import { LoginPage } from "../features/auth/LoginPage";
+import { PluginRouteBoundary } from "../features/plugins/PluginRouteBoundary";
+import { listFrontendPluginRegistrations } from "../features/plugins/runtime";
 import { RequireAuth } from "../features/auth/RequireAuth";
 import { SystemDashboardPage } from "../features/system/SystemDashboardPage";
 import { PluginsPage } from "../features/system/PluginsPage";
@@ -15,6 +17,24 @@ function RootRedirect() {
   const token = useAuthStore((state) => state.token);
   return <Navigate replace to={token ? "/app/dashboard" : "/login"} />;
 }
+
+const pluginRoutes = listFrontendPluginRegistrations().flatMap((registration) =>
+  registration.routes.map((route) => {
+    const RouteComponent = route.component;
+
+    return {
+      path: route.path,
+      element: (
+        <PluginRouteBoundary
+          pluginId={registration.pluginId}
+          requiredPermissions={route.requiredPermissions}
+        >
+          <RouteComponent />
+        </PluginRouteBoundary>
+      ),
+    };
+  })
+);
 
 export const appRouter = createBrowserRouter([
   {
@@ -72,6 +92,7 @@ export const appRouter = createBrowserRouter([
               </PermissionBoundary>
             ),
           },
+          ...pluginRoutes,
         ],
       },
     ],

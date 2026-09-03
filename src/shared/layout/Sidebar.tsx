@@ -3,6 +3,8 @@ import { NavLink } from "react-router-dom";
 
 import { useAuthStore } from "../../features/auth/store";
 import { useLogoutAction } from "../../features/auth/useLogoutAction";
+import { usePluginFrontendRuntime } from "../../features/plugins/runtime";
+import { buildShellSidebarSections } from "../../features/shell/navigation";
 import { ThemeToggle } from "./theme-toggle";
 
 function ChevronDown({ open }: { open: boolean }) {
@@ -22,44 +24,11 @@ function ChevronDown({ open }: { open: boolean }) {
 export function Sidebar() {
   const logout = useLogoutAction();
   const permissions = useAuthStore((state) => state.permissions);
-
-  const sections = [
-    {
-      title: "Sistema",
-      items: [
-        { kind: "link" as const, label: "Dashboard", to: "/app/dashboard" },
-        ...(permissions.includes("core.plugin.runtime.read") || permissions.includes("core.plugin.manage")
-          ? [{ kind: "link" as const, label: "Plugins", to: "/app/plugins" }]
-          : []),
-      ],
-    },
-    ...(permissions.includes("core.users.read") ||
-    permissions.includes("core.roles.read") ||
-    permissions.includes("core.roles.manage") ||
-    permissions.includes("core.branches.read") ||
-    permissions.includes("core.branches.manage")
-      ? [
-          {
-            title: "Ajustes",
-            items: [
-              ...(permissions.includes("core.users.read")
-                ? [{ kind: "link" as const, label: "Usuarios", to: "/app/settings/users" }]
-                : []),
-              ...(permissions.includes("core.roles.read") || permissions.includes("core.roles.manage")
-                ? [{ kind: "link" as const, label: "Roles", to: "/app/settings/roles" }]
-                : []),
-              ...(permissions.includes("core.branches.read") || permissions.includes("core.branches.manage")
-                ? [{ kind: "link" as const, label: "Sucursales", to: "/app/settings/branches" }]
-                : []),
-            ],
-          },
-        ]
-      : []),
-    {
-      title: "Sesion",
-      items: [{ kind: "action" as const, label: "Cerrar sesion", action: "logout" as const }],
-    },
-  ];
+  const pluginRuntime = usePluginFrontendRuntime();
+  const sections = buildShellSidebarSections({
+    permissions,
+    pluginNavigation: pluginRuntime.navigation,
+  });
 
   const [collapsedSections, setCollapsedSections] = useState<Set<string>>(
     () => new Set(),
@@ -118,6 +87,29 @@ export function Sidebar() {
                         >
                           {item.label}
                         </NavLink>
+                      );
+                    }
+                    if (item.kind === "group") {
+                      return (
+                        <div key={`${sectionKey}:${item.label}`} className="space-y-1">
+                          {item.items.map((child) => (
+                            <NavLink
+                              key={`${sectionKey}:${child.to}`}
+                              to={child.to}
+                              end
+                              className={({ isActive }) =>
+                                [
+                                  "block rounded-md px-3 py-1.5 pl-6 text-sm transition",
+                                  isActive
+                                    ? "bg-accent text-accent-foreground"
+                                    : "text-sidebar-foreground/75 hover:bg-accent hover:text-accent-foreground",
+                                ].join(" ")
+                              }
+                            >
+                              {child.label}
+                            </NavLink>
+                          ))}
+                        </div>
                       );
                     }
                     if (item.kind === "action") {

@@ -33,19 +33,17 @@ export function buildShellSidebarSections({
   permissions,
   pluginNavigation,
 }: BuildShellSidebarSectionsInput): ShellNavSection[] {
-  const sections: ShellNavSection[] = [];
-
-  if (permissions.includes("core.users.read")) {
-    sections.push({
+  const sections: ShellNavSection[] = [
+    {
       title: "Sistema",
-      items: [{ kind: "link", label: "Dashboard", to: "/app/system" }],
-    });
-  }
+      items: [{ kind: "link", label: "Dashboard", to: "/app/dashboard" }],
+    },
+  ];
 
-  if (sections.length > 0 && (
+  if (
     permissions.includes("core.plugin.runtime.read") ||
     permissions.includes("core.plugin.manage")
-  )) {
+  ) {
     sections[0].items.push({ kind: "link", label: "Plugins", to: "/app/plugins" });
   }
 
